@@ -1,18 +1,41 @@
 export default async function handler(req, res) {
-    let targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).send('Missing target URL');
-    if (!/^https?:\/\//i.test(targetUrl)) {
-        targetUrl = 'https://' + targetUrl;
-    }
+    const token = process.env.VERCEL_TOKEN;
+    const projectId = process.env.VERCEL_PROJECT_ID;
+
+    // A list of educational prefixes to generate links resembling reference sites
+    const subjects = ['science', 'english', 'history', 'math', 'biology', 'physics', 'studio', 'classroom', 'library', 'archive', 'academy', 'atlas'];
+    const randomSubject = subjects[Math.floor(Math.random() * subjects.length)] + '-' + Math.floor(1000 + Math.random() * 9000);
+
     try {
-        const response = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        // Query Vercel's API to fetch the structural name of your current project
+        const projectRes = await fetch(`https://vercel.com{projectId}`, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-        if (!response.ok) return res.status(response.status).send(`Failed to load site`);
-        const data = await response.text();
-        res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(data);
+        const projectData = await projectRes.json();
+        const baseName = projectData.name;
+        
+        // Formulate a completely unique sub-route domain string
+        const newDomainName = `${randomSubject}-${baseName}.vercel.app`;
+
+        // Instruct Vercel's network layer to bind this new live routing link instantly
+        const assignRes = await fetch(`https://vercel.com{projectId}/domains`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: newDomainName })
+        });
+
+        if (!assignRes.ok) {
+            const errData = await assignRes.json();
+            return res.status(500).json({ error: 'API rejection', details: errData });
+        }
+
+        // Output the generated string back to the user interface
+        return res.status(200).json({ url: newDomainName });
+
     } catch (error) {
-        return res.status(500).send(`Error: ${error.message}`);
+        return res.status(500).json({ error: error.message });
     }
 }
