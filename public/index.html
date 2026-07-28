@@ -3,22 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proxied Search</title>
+    <title>Educational Hub & Generator</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #fafafa; }
-        .container { text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); width: 90%; max-width: 500px; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #fafafa; }
+        .container { text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); width: 90%; max-width: 500px; margin-bottom: 20px; }
         input[type="text"] { width: 100%; padding: 14px; font-size: 16px; border: 1px solid #e0e0e0; border-radius: 6px; box-sizing: border-box; margin-bottom: 20px; outline: none; }
-        button { padding: 12px 30px; font-size: 16px; background: #0070f3; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        button { padding: 12px 30px; font-size: 16px; background: #0070f3; color: white; border: none; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold;}
+        .bot-btn { background: #1a1a1a; }
+        #result-link { margin-top: 25px; padding: 15px; background: #f0f7ff; border: 1px solid #bae7ff; border-radius: 6px; display: none; word-break: break-all; font-size: 16px; }
     </style>
 </head>
 <body>
+    <!-- Box 1: The Main Proxy Searchbar -->
     <div class="container">
-        <h2>Enter Target URL</h2>
+        <h2>Educational Resource Search</h2>
         <form action="/api/proxy" method="GET">
-            <input type="text" name="url" placeholder="https://example.com" required autocomplete="off">
-            <br>
-            <button type="submit">Browse</button>
+            <input type="text" name="url" placeholder="Enter study URL (e.g., wikipedia.org)" required autocomplete="off">
+            <button type="submit">Go to Page</button>
         </form>
     </div>
+
+    <!-- Box 2: The Link Generator Bot -->
+    <div class="container">
+        <h2>Generate Resource Clone</h2>
+        <p style="color: #666; font-size: 14px;">Click the button below to instantly register an alternative live access link.</p>
+        <button class="bot-btn" onclick="generateClone()">🤖 Generate New Address</button>
+        <div id="result-link"></div>
+    </div>
+
+    <script>
+        async function generateClone() {
+            const div = document.getElementById('result-link');
+            div.style.display = "block";
+            div.innerHTML = "<em>Generating dynamic address... please wait...</em>";
+            
+            try {
+                const res = await fetch('/api/clone');
+                const data = await res.json();
+                if(data.url) {
+                    div.innerHTML = `<strong>New link ready:</strong><br><br><a href="https://${data.url}" target="_blank" style="color: #0070f3; font-weight: bold; text-decoration: none;">https://${data.url}</a>`;
+                } else {
+                    div.innerHTML = "Generation failed. Verify that your Vercel Environment Variables are saved correctly.";
+                }
+            } catch(e) {
+                div.innerHTML = "Connection error. Unable to reach the engine.";
+            }
+        }
+    </script>
 </body>
 </html>
