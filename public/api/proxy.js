@@ -1,41 +1,36 @@
 export default async function handler(req, res) {
-    const token = process.env.VERCEL_TOKEN;
-    const projectId = process.env.VERCEL_PROJECT_ID;
+    let targetUrl = req.query.url;
 
-    // A list of educational prefixes to generate links resembling reference sites
-    const subjects = ['science', 'english', 'history', 'math', 'biology', 'physics', 'studio', 'classroom', 'library', 'archive', 'academy', 'atlas'];
-    const randomSubject = subjects[Math.floor(Math.random() * subjects.length)] + '-' + Math.floor(1000 + Math.random() * 9000);
+    if (!targetUrl) return res.status(400).send('Missing target URL');
+
+    // FIX 1: If the user didn't type a dot (like .com), treat it as a generic search attempt
+    if (!targetUrl.includes('.')) {
+        targetUrl = '://duckduckgo.com' + encodeURIComponent(targetUrl);
+    }
+
+    if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = 'https://' + targetUrl;
+    }
 
     try {
-        // Query Vercel's API to fetch the structural name of your current project
-        const projectRes = await fetch(`https://vercel.com{projectId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        const projectData = await projectRes.json();
-        const baseName = projectData.name;
-        
-        // Formulate a completely unique sub-route domain string
-        const newDomainName = `${randomSubject}-${baseName}.vercel.app`;
-
-        // Instruct Vercel's network layer to bind this new live routing link instantly
-        const assignRes = await fetch(`https://vercel.com{projectId}/domains`, {
-            method: 'POST',
+        const response = await fetch(targetUrl, {
             headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ name: newDomainName })
+                // FIX 2: Emulate a real Windows 10 Chrome Browser to bypass basic bot walls
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
+            }
         });
 
-        if (!assignRes.ok) {
-            const errData = await assignRes.json();
-            return res.status(500).json({ error: 'API rejection', details: errData });
+        if (!response.ok) {
+            return res.status(response.status).send(`The target website refused the connection (Status Code: ${response.status}). Many major search engines block cloud hosting systems.`);
         }
 
-        // Output the generated string back to the user interface
-        return res.status(200).json({ url: newDomainName });
+        const data = await response.text();
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(data);
 
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).send(`Error trying to connect: ${error.message}. Make sure the domain name is spelled correctly.`);
     }
 }
